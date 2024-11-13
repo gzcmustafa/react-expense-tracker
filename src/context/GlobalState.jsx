@@ -1,38 +1,52 @@
-import { useReducer,createContext} from "react";
+import { useReducer, createContext, useEffect } from "react";
 import AppReducer from './AppReducer'
 
 const initialState = {
-    transactions: [
-        { id: 1, text: 'Flower', amount: -20 },
-        { id: 2, text: 'Salary', amount: 300 },
-        { id: 3, text: 'Book', amount: -10 },
-        { id: 4, text: 'Camera', amount: 150 }
-    ]
-}
+  transactions: []
+};
 
-//Create Context
+// localStorage'dan veri okuma
+const loadTransactions = () => {
+  const savedTransactions = localStorage.getItem('transactions');
+  if (savedTransactions) {
+    return JSON.parse(savedTransactions); // localStorage'dan veriyi JSON formatında alıyoruz
+  } else {
+    return [
+      { id: 1, text: 'Flower', amount: -20 }
+    ];
+  }
+};
+
+// Create Context
 export const GlobalContext = createContext(initialState);
 
+// Provider Component
+export const GlobalProvider = ({ children }) => {
+  const [state, dispatch] = useReducer(AppReducer, { transactions: loadTransactions() });
 
-//Provider Component
-export const GlobalProvider = ({children}) => {
-    const [state,dispatch] = useReducer(AppReducer,initialState);
+  // localStorage'a veri kaydetme işlemi
+  useEffect(() => {
+    localStorage.setItem('transactions', JSON.stringify(state.transactions)); // transactions'ı kaydediyoruz
+  }, [state.transactions]); // transactions değiştiğinde çalışır
 
-//Actions
-function deleteTransaction(id) {
+  // Actions
+  function deleteTransaction(id) {
     dispatch({
-        type:'DELETE_TRANSACTION',
-        payload:id
-    }
-    )
-}
-    
-    
-    return (
-            
-            <GlobalContext.Provider value={{transactions:state.transactions , deleteTransaction}}>
-                {children}
-            </GlobalContext.Provider>
+      type: 'DELETE_TRANSACTION',
+      payload: id
+    });
+  }
 
-    )
-}
+  function addTransaction(transaction) {
+    dispatch({
+      type: 'ADD_TRANSACTION',
+      payload: transaction
+    });
+  }
+
+  return (
+    <GlobalContext.Provider value={{ transactions: state.transactions, deleteTransaction, addTransaction }}>
+      {children}
+    </GlobalContext.Provider>
+  );
+};
